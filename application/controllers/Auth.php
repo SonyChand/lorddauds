@@ -5,47 +5,50 @@ class Auth extends CI_Controller {
     public function __construct()
 		{
 			parent::__construct();
-			// maintain();
-			// include_once APPPATH . "../vendor/autoload.php";
 			date_default_timezone_set('Asia/Jakarta');
 		}
 
 	public function index()
 	{
+		if ($this->session->userdata('email')) {
+			redirect('dashboard');
+		}
 		$data = [
             'title' => 'Login'
         ];
 
-            // $this->load->view('templates/dashboard/header', $data);
-            // $this->load->view('templates/dashboard/top-sidebar', $data);
-            $this->load->view('templates/dashboard/auth/index', $data);
-            // $this->load->view('templates/dashboard/footer');
+		$this->form_validation->set_rules('email', 'Email', 'trim|required|valid_email');
+		$this->form_validation->set_rules('password', 'Password', 'trim|required');
+
+			if ($this->form_validation->run() == false) {
+				$this->load->view('templates/dashboard/auth/index', $data);
+			} else {
+				$this->_login();
+				redirect('dashboard');
+			}
         
 	}
 
 	public function logout()
 		{
-			$user = $this->db->get_where('pengguna', ['email' => $this->session->userdata('email')])->row_array();
+			$user = $this->db->get_where('user', ['email' => $this->session->userdata('email')])->row_array();
 			$last_login = [
-				'terakhir_login' => time(),
-				'aktif' => 0
+				'last_login' => time(),
+				'stand_by' => 0
 			];
 
 			$this->db->set($last_login);
 			$this->db->where('email', $this->session->userdata('email'));
-			$this->db->update('pengguna');
+			$this->db->update('user');
 
-			histori('Logout', $user['nama'], $user['email'], 'telah melakukan logout', time(), 'primary');
-
-			$this->session->unset_userdata('nama');
+			$this->session->unset_userdata('name');
 			$this->session->unset_userdata('email');
-			$this->session->unset_userdata('role');
-			$this->session->unset_userdata('wilayah');
-			$this->session->unset_userdata('tahun');
+			$this->session->unset_userdata('role_id');
 
-			$this->session->set_flashdata('message', '<div class="alert alert-success" role="alert">Anda telah logout!</div>');
-			redirect('welcome');
+			$this->session->set_flashdata('message', '<div class="alert alert-success" role="alert">Logout Success!!</div>');
+			redirect('auth');
 		}
+
         private function _login()
 		{
 
@@ -56,39 +59,37 @@ class Auth extends CI_Controller {
 			// jika usernya ada
 			if ($user) {
 				// jika usernya aktif
-				if ($user['status'] == 'Y') {
+				if ($user['is_active'] == 1) {
 					// cek password
 					if (password_verify($password, $user['password'])) {
 
 						$data = [
-							'nama' => $user['nama'],
+							'name' => $user['name'],
 							'email' => $user['email'],
-							'role' => $user['role'],
-							'wilayah' => $user['wilayah']
+							'role_id' => $user['role_id']
 						];
 						$this->session->set_userdata($data);
 
 						$last_login = [
-							'terakhir_login' => time(),
-							'aktif' => 1
+							'last_login' => time(),
+							'stand_by' => 1
 						];
 
 						$this->db->set($last_login);
 						$this->db->where('email', $this->session->userdata('email'));
-						$this->db->update('pengguna');
+						$this->db->update('user');
 
-						histori('Login', $user['name'], $user['email'], 'telah melakukan login', time(), 'primary');
 					} else {
-						$this->session->set_flashdata('message', '<div class="alert alert-danger" role="alert">Password Salah!!</div>');
-						redirect('welcome');
+						$this->session->set_flashdata('message', '<div class="alert alert-danger" role="alert">Wrong Password!!</div>');
+						redirect('auth');
 					}
 				} else {
-					$this->session->set_flashdata('message', '<div class="alert alert-danger" role="alert">Email belum diaktivasi, Hubungi Operator Anda!!</div>');
-					redirect('welcome');
+					$this->session->set_flashdata('message', '<div class="alert alert-danger" role="alert">Email not Activated!!</div>');
+					redirect('auth');
 				}
 			} else {
-				$this->session->set_flashdata('message', '<div class="alert alert-danger" role="alert">Email tidak terdaftar!!</div>');
-				redirect('welcome');
+				$this->session->set_flashdata('message', '<div class="alert alert-danger" role="alert">Email not Registered!!</div>');
+				redirect('auth');
 			}
 		}
 

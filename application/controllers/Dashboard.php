@@ -5,8 +5,7 @@ class Dashboard extends CI_Controller {
     public function __construct()
 		{
 			parent::__construct();
-			// maintain();
-			// include_once APPPATH . "../vendor/autoload.php";
+            user();
 			date_default_timezone_set('Asia/Jakarta');
 		}
 	public function index()
@@ -15,7 +14,8 @@ class Dashboard extends CI_Controller {
             'title' => 'Dashboard',
             'menu' => $this->db->get_where('user_menu', [
                 'status' => 1
-            ])->result()
+            ])->result(),
+            'user' => $this->db->join('user_role', 'user_role.id = user.role_id')->get_where('user', ['email' => $this->session->userdata('email')])->row()
         ];
 
             $this->load->view('templates/dashboard/header', $data);
